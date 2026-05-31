@@ -5,11 +5,11 @@
 [![Streamlit](https://img.shields.io/badge/Built%20with-Streamlit-FF4B4B?style=for-the-badge&logo=streamlit)](https://streamlit.io)
 [![Groq](https://img.shields.io/badge/LLM-Groq%20Llama%203.1-orange?style=for-the-badge)](https://console.groq.com)
 [![Python](https://img.shields.io/badge/Python-3.8+-blue?style=for-the-badge&logo=python)](https://python.org)
-[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
+
 
 ---
 
-## 🔍 What is HireEquity?
+##  What is HireEquity?
 
 HireEquity is a professional, AI-powered web application that helps HR teams, recruiters, and hiring managers write **fairer, more inclusive job descriptions**. It automatically detects biased language, scores the JD out of 100, fixes it using AI, and generates a professional PDF audit report — all in seconds.
 
