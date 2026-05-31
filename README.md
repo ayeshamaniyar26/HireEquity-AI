@@ -1,10 +1,14 @@
 # HireEquity 
 ### AI-Powered Job Description Generator & Bias Auditor
 
+🌐 **Live App:** https://hireequity.streamlit.app/
+
+[![Live Demo](https://img.shields.io/badge/🌐%20Live%20Demo-HireEquity-FF4B4B?style=for-the-badge)](https://hireequity.streamlit.app/)
 
 [![Streamlit](https://img.shields.io/badge/Built%20with-Streamlit-FF4B4B?style=for-the-badge&logo=streamlit)](https://streamlit.io)
 [![Groq](https://img.shields.io/badge/LLM-Groq%20Llama%203.1-orange?style=for-the-badge)](https://console.groq.com)
 [![Python](https://img.shields.io/badge/Python-3.8+-blue?style=for-the-badge&logo=python)](https://python.org)
+
 
 
 ---
