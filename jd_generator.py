@@ -18,7 +18,8 @@ def get_groq_client():
 
 def generate_job_description(role, level, domain):
     """
-    Generates a job description using Groq Llama3 based on inputs.
+    Generates a job description using Groq based on inputs.
+    Tries multiple fallback models in case of rate limits or service outages.
     """
     client = get_groq_client()
     if not client:
@@ -33,23 +34,39 @@ def generate_job_description(role, level, domain):
 Use gender neutral language only.
 Do not use any masculine or feminine coded words."""
 
-    try:
-        response = client.chat.completions.create(
-            messages=[
-                {
-                    "role": "system", 
-                    "content": "You are a professional HR copywriter specialized in writing inclusive, biased-free, and engaging job descriptions."
-                },
-                {"role": "user", "content": prompt}
-            ],
-            model="llama-3.1-8b-instant",
-            temperature=0.7,
-            max_tokens=1024
-        )
-        
-        jd_text = response.choices[0].message.content
-        return jd_text.strip()
+    # List of models to try in sequence
+    models_to_try = [
+        "llama-3.1-8b-instant",
+        "llama3-8b-8192",
+        "mixtral-8x7b-32768",
+        "gemma2-9b-it",
+        "llama-3.3-70b-versatile"
+    ]
 
-    except Exception as e:
-        logger.error(f"Error calling Groq JD Generator API: {e}")
-        raise e
+    last_error = None
+    for model in models_to_try:
+        try:
+            logger.info(f"Attempting to generate JD with Groq model: {model}")
+            response = client.chat.completions.create(
+                messages=[
+                    {
+                        "role": "system", 
+                        "content": "You are a professional HR copywriter specialized in writing inclusive, biased-free, and engaging job descriptions."
+                    },
+                    {"role": "user", "content": prompt}
+                ],
+                model=model,
+                temperature=0.7,
+                max_tokens=1024
+            )
+            
+            jd_text = response.choices[0].message.content
+            logger.info(f"Successfully generated JD using model {model}")
+            return jd_text.strip()
+        except Exception as e:
+            logger.warning(f"Failed to generate JD using model {model}: {e}")
+            last_error = e
+
+    logger.error(f"All Groq models failed for JD Generation. Last error: {last_error}")
+    raise last_error
+

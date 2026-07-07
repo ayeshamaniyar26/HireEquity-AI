@@ -18,7 +18,8 @@ def get_groq_client():
 
 def rewrite_job_description(original_jd, flagged_items, style="Inclusive"):
     """
-    Rewrites a job description using Groq Llama3 to remove bias with a specified tone style.
+    Rewrites a job description using Groq to remove bias with a specified tone style.
+    Tries multiple fallback models in case of rate limits or service outages.
     """
     client = get_groq_client()
     if not client:
@@ -44,24 +45,39 @@ Rules:
 - Return ONLY the rewritten job description text, no preamble or extra conversational text.
 Original JD: {original_jd}"""
 
-    try:
-        response = client.chat.completions.create(
-            messages=[
-                {
-                    "role": "system", 
-                    "content": "You are a professional HR copywriter specialized in writing inclusive, biased-free, and engaging job descriptions."
-                },
-                {"role": "user", "content": prompt}
-            ],
-            model="llama-3.1-8b-instant",
-            temperature=0.3, # lower temperature for structural adherence
-            max_tokens=1500
-        )
-        
-        rewritten_jd = response.choices[0].message.content
-        return rewritten_jd.strip()
+    # List of models to try in sequence
+    models_to_try = [
+        "llama-3.1-8b-instant",
+        "llama3-8b-8192",
+        "mixtral-8x7b-32768",
+        "gemma2-9b-it",
+        "llama-3.3-70b-versatile"
+    ]
 
-    except Exception as e:
-        logger.error(f"Error calling Groq Rewriter API: {e}")
-        raise e
+    last_error = None
+    for model in models_to_try:
+        try:
+            logger.info(f"Attempting to rewrite JD with Groq model: {model}")
+            response = client.chat.completions.create(
+                messages=[
+                    {
+                        "role": "system", 
+                        "content": "You are a professional HR copywriter specialized in writing inclusive, biased-free, and engaging job descriptions."
+                    },
+                    {"role": "user", "content": prompt}
+                ],
+                model=model,
+                temperature=0.3, # lower temperature for structural adherence
+                max_tokens=1500
+            )
+            
+            rewritten_jd = response.choices[0].message.content
+            logger.info(f"Successfully rewrote JD using model {model}")
+            return rewritten_jd.strip()
+        except Exception as e:
+            logger.warning(f"Failed to rewrite JD using model {model}: {e}")
+            last_error = e
+
+    logger.error(f"All Groq models failed for JD Rewriter. Last error: {last_error}")
+    raise last_error
 

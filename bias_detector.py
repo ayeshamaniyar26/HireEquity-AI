@@ -86,6 +86,7 @@ def scan_wordlist_bias(jd_text):
 def check_semantic_bias(jd_text):
     """
     Calls Groq API to run a semantic bias audit.
+    Tries multiple fallback models in case of rate limits or service outages.
     """
     client = get_groq_client()
     if not client:
@@ -106,47 +107,61 @@ Return JSON only, no extra text:
 }}
 JD: {jd_text}"""
 
-    try:
-        response = client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": "You are a helpful HR assistant specialized in diversity, equity, and inclusion (DEI)."},
-                {"role": "user", "content": prompt}
-            ],
-            model="llama-3.1-8b-instant",
-            temperature=0.0,
-            response_format={"type": "json_object"}
-        )
-        
-        content = response.choices[0].message.content
-        logger.info(f"Groq Semantic Response: {content}")
-        data = json.loads(content)
-        biased_phrases = data.get("biased_phrases", [])
-        
-        # Clean and standardise results
-        cleaned_items = []
-        for item in biased_phrases:
-            phrase = item.get("phrase", "")
-            if not phrase:
-                continue
-                
-            # Standardize severity
-            severity = item.get("severity", "moderate").lower()
-            if severity not in ["critical", "moderate", "minor"]:
-                severity = "moderate"
-                
-            cleaned_items.append({
-                "phrase": phrase,
-                "category": item.get("category", "General Bias"),
-                "severity": severity,
-                "suggestion": item.get("suggestion", "Rephrase using more inclusive terminology."),
-                "source": "semantic"
-            })
-        return cleaned_items
+    # List of models to try in sequence
+    models_to_try = [
+        "llama-3.1-8b-instant",
+        "llama3-8b-8192",
+        "mixtral-8x7b-32768",
+        "gemma2-9b-it",
+        "llama-3.3-70b-versatile"
+    ]
 
-    except Exception as e:
-        logger.error(f"Error during Groq semantic bias check: {e}")
-        # Return empty list so the app doesn't crash
-        return []
+    last_error = None
+    for model in models_to_try:
+        try:
+            logger.info(f"Attempting semantic bias check with Groq model: {model}")
+            response = client.chat.completions.create(
+                messages=[
+                    {"role": "system", "content": "You are a helpful HR assistant specialized in diversity, equity, and inclusion (DEI)."},
+                    {"role": "user", "content": prompt}
+                ],
+                model=model,
+                temperature=0.0,
+                response_format={"type": "json_object"}
+            )
+            
+            content = response.choices[0].message.content
+            logger.info(f"Groq Semantic Response using model {model}: {content}")
+            data = json.loads(content)
+            biased_phrases = data.get("biased_phrases", [])
+            
+            # Clean and standardise results
+            cleaned_items = []
+            for item in biased_phrases:
+                phrase = item.get("phrase", "")
+                if not phrase:
+                    continue
+                    
+                # Standardize severity
+                severity = item.get("severity", "moderate").lower()
+                if severity not in ["critical", "moderate", "minor"]:
+                    severity = "moderate"
+                    
+                cleaned_items.append({
+                    "phrase": phrase,
+                    "category": item.get("category", "General Bias"),
+                    "severity": severity,
+                    "suggestion": item.get("suggestion", "Rephrase using more inclusive terminology."),
+                    "source": "semantic"
+                })
+            return cleaned_items
+        except Exception as e:
+            logger.warning(f"Failed semantic bias check using model {model}: {e}")
+            last_error = e
+
+    logger.error(f"All Groq models failed for Semantic Bias Check. Last error: {last_error}")
+    # Return empty list so the app doesn't crash
+    return []
 
 def calculate_score(flagged_items):
     """
