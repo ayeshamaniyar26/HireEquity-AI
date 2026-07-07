@@ -16,9 +16,9 @@ def get_groq_client():
         return None
     return Groq(api_key=api_key)
 
-def rewrite_job_description(original_jd, flagged_items):
+def rewrite_job_description(original_jd, flagged_items, style="Inclusive"):
     """
-    Rewrites a job description using Groq Llama3 to remove bias.
+    Rewrites a job description using Groq Llama3 to remove bias with a specified tone style.
     """
     client = get_groq_client()
     if not client:
@@ -29,11 +29,19 @@ def rewrite_job_description(original_jd, flagged_items):
 
     prompt = f"""You are an inclusive language expert.
 Rewrite this job description to remove all gender bias, age bias, ableism and elitism. These are the flagged phrases to fix: {flagged_phrases_str}
+
+Tone Profile: Rewrite using a '{style}' tone. Follow these style guidelines:
+- Inclusive: Highly collaborative, supportive, warm, welcoming, and open.
+- Corporate: Professional, structured, formal, objective, and clear.
+- Startup: Dynamic, fast-paced, growth-oriented, impact-focused, and energetic.
+- FAANG: Scale-focused, highly technical, metric-driven, and innovative.
+- Executive: Visionary, strategic, leadership-focused, high-impact, and authoritative.
+
 Rules:
-- Keep same structure and meaning
+- Keep the same general structure and meaning
 - Use gender neutral language
-- Replace restrictive experience years with reasonable ones
-- Return only rewritten JD, nothing else
+- Replace restrictive experience requirements with reasonable, inclusive equivalents
+- Return ONLY the rewritten job description text, no preamble or extra conversational text.
 Original JD: {original_jd}"""
 
     try:
@@ -56,3 +64,4 @@ Original JD: {original_jd}"""
     except Exception as e:
         logger.error(f"Error calling Groq Rewriter API: {e}")
         raise e
+
